@@ -1,7 +1,7 @@
 
 //youtube transcriptor api logic
-async function getTranscript() {
-    const url = 'https://youtube-transcriptor.p.rapidapi.com/transcript?video_id=8aGhZQkoFbQ&lang=en';
+async function getTranscript(video_id) {
+    const url = `https://youtube-transcriptor.p.rapidapi.com/transcript?video_id=${video_id}&lang=en`;
     const options = {
 	method: 'GET',
 	headers: {
@@ -25,8 +25,8 @@ async function getTranscript() {
     
 }
 
-async function main() {
-    let transcription = await getTranscript();
+async function main(video_id) {
+    let transcription = await getTranscript(video_id);
 
      // Simulate an asynchronous operation (e.g., fetching data)
     setTimeout(function() {
@@ -41,7 +41,7 @@ async function main() {
 
     // find subs that match the search term
     transcription.forEach(sub => {
-        if (sub['subtitle'].includes('function')) {
+        if (sub['subtitle'].toLowerCase().includes('we all have problems')) {
             // clean subs
             
             matches.push({
@@ -53,19 +53,30 @@ async function main() {
     console.log(matches)
 }
 
-let youtubeUrl;
-chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
-     youtubeUrl = tabs[0].url;
-});
-console.log(youtubeUrl);
 
 var loadingContainer = document.querySelector('.loading-container');
 var contentContainer = document.querySelector('.popup-container');
 
-window.onload = function() {
+contentContainer.style.display = 'none';
+loadingContainer.style.display = 'block';
+
+let vidId = []
+chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
+    let youtubeUrl = tabs[0].url;
+    if(youtubeUrl.includes('youtube.com')){
+        vidId.push(youtubeUrl.slice(youtubeUrl.indexOf('v=') + 2, youtubeUrl.indexOf('&')));
+        onYoutube(vidId[0]);
+    }
+    else {
+        loadingContainer.innerHTML = '<p>Error... \n Go to a YouTube Video</p>';
+    }
+    
+});
+
+
+function onYoutube(video_id) {
     // Show loading container
-    contentContainer.style.display = 'none';
-    loadingContainer.style.display = 'block';
-    main();
+
+    main(video_id);
 
 };
