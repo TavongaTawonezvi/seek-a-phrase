@@ -1,7 +1,7 @@
 
 //youtube transcriptor api logic
 async function getTranscript(video_id) {
-    const url = `https://youtube-transcriptor.p.rapidapi.com/transcript?video_id=${video_id}&lang=en`;
+    const url = `https://youtube-transcriptor.p.rapidapi.com/transcript?video_id=${video_id}`;
     const options = {
 	method: 'GET',
 	headers: {
@@ -25,37 +25,64 @@ async function getTranscript(video_id) {
     
 }
 
+// show search box if api returns a valid video transcription
+function transcriptionTrue() {
+    loadingContainer.style.display = 'none';
+    contentContainer.style.display = 'block';
+}
+
+// show an error dialog if api returns an invalid transcription
+function transcriptionFalse() {
+    loadingContainer.innerHTML = "<p>Error loading video data</p>";
+}
+
 async function main(video_id) {
     let transcription = await getTranscript(video_id);
 
-     // Simulate an asynchronous operation (e.g., fetching data)
-    setTimeout(function() {
-        // Hide loading container
-        loadingContainer.style.display = 'none';
-    
-        // Show content container
-        contentContainer.style.display = 'block';
-    }, 600); // Adjust the delay as needed
+    if (Object.keys(transcription).length > 0) {
 
-    let matches = [];
+        transcriptionTrue();
+        let searchTerm = document.querySelector('.searchTerm');
 
-    // find subs that match the search term
-    transcription.forEach(sub => {
-        if (sub['subtitle'].toLowerCase().includes('we all have problems')) {
-            // clean subs
+        // get a search term from the user
+        document.getElementById('actionButton').addEventListener('click', e => {
+
+            let matches = [];
+            if (searchTerm.value.length > 0){
+
+                // find subs that match the search term
+                transcription.forEach(sub => {
+                    if (sub['subtitle'].toLowerCase().includes(searchTerm.value)) {
+
+                         // clean subs and push to array
+                         matches.push({
+                             subtitle: sub['subtitle'].replace(/\n/ , ' ').replace('&#39;', "'"),
+                             start: sub['start']
+                         })
+                    }
+                });
+                console.log(matches)
+            }else{
+                searchTerm.placeholder = 'Empty search bar';
+            }
             
-            matches.push({
-                subtitle: sub['subtitle'].replace(/\n/ , ' ').replace('&#39;', "'"),
-                start: sub['start']
-            })
-        }
-    });
-    console.log(matches)
+        });
+
+    }else {
+
+        transcriptionFalse();
+
+    }
+   
+   
+
+   
 }
 
 
 var loadingContainer = document.querySelector('.loading-container');
 var contentContainer = document.querySelector('.popup-container');
+
 
 contentContainer.style.display = 'none';
 loadingContainer.style.display = 'block';
@@ -63,6 +90,7 @@ loadingContainer.style.display = 'block';
 let vidId = []
 chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
     let youtubeUrl = tabs[0].url;
+    // check if user is on YouTube
     if(youtubeUrl.includes('youtube.com')){
         vidId.push(youtubeUrl.slice(youtubeUrl.indexOf('v=') + 2, youtubeUrl.indexOf('&')));
         onYoutube(vidId[0]);
