@@ -25,42 +25,35 @@ async function getTranscript(video_id) {
     
 }
 
-// show search box if api returns a valid video transcription
-function transcriptionTrue() {
-    loadingContainer.style.display = 'none';
-    contentContainer.style.display = 'block';
-}
-
-// show an error dialog if api returns an invalid transcription
-function transcriptionFalse() {
-    loadingContainer.innerHTML = "<p>Error loading video data</p>";
-}
 
 async function main(video_id) {
     let transcription = await getTranscript(video_id);
 
     if (Object.keys(transcription).length > 0) {
 
-        transcriptionTrue();
-        let searchTerm = document.querySelector('.searchTerm');
+        let searchTerm = document.querySelector('#searchQueryInput');
 
         // get a search term from the user
         document.getElementById('actionButton').addEventListener('click', e => {
 
             let matches = [];
             if (searchTerm.value.length > 0){
-
+                loadingSvg.style.display = 'block';
                 // find subs that match the search term
+                console.log(transcription)
                 transcription.forEach(sub => {
                     if (sub['subtitle'].toLowerCase().includes(searchTerm.value)) {
 
-                         // clean subs and push to array
-                         matches.push({
-                             subtitle: sub['subtitle'].replace(/\n/ , ' ').replace('&#39;', "'"),
-                             start: sub['start']
-                         })
+                         // push matching timestamps to array
+                         matches.push( sub['start'] );
                     }
+                    
                 });
+
+                bottomStamp.innerHTML = 0;
+                topStamp.innerHTML = matches.length;
+                setTimeout( loadFinished , 2000);
+                matchesGlobal = matches;
                 console.log(matches)
             }else{
                 searchTerm.placeholder = 'Empty search bar';
@@ -70,7 +63,6 @@ async function main(video_id) {
 
     }else {
 
-        transcriptionFalse();
 
     }
    
@@ -79,13 +71,23 @@ async function main(video_id) {
    
 }
 
-
-var loadingContainer = document.querySelector('.loading-container');
+let matchesGlobal = [];
 var contentContainer = document.querySelector('.popup-container');
 
+var timestampController = document.querySelector('#timestamp-controller');
+var loadingSvg = document.querySelector('#loading-svg');
 
-contentContainer.style.display = 'none';
-loadingContainer.style.display = 'block';
+var back = document.querySelector('#back');
+var forward = document.querySelector('#forward');
+
+var bottomStamp = document.querySelector('#bottom-stamp');
+var topStamp = document.querySelector('#top-stamp');
+
+
+function loadFinished(){
+    loadingSvg.style.display = 'none';
+    timestampController.style.display = 'block';
+}
 
 let vidId = []
 chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
@@ -96,7 +98,7 @@ chrome.tabs.query({currentWindow: true, active: true}, function(tabs){
         onYoutube(vidId[0]);
     }
     else {
-        loadingContainer.innerHTML = '<p>Error... \n Go to a YouTube Video</p>';
+
     }
     
 });
@@ -108,3 +110,23 @@ function onYoutube(video_id) {
     main(video_id);
 
 };
+
+back.addEventListener('click', goBack(matchesGlobal));
+
+forward.addEventListener('click', goForward(matchesGlobal));
+
+function goBack(matches) {
+    if(bottomStamp.innerHTML === 0) {
+        bottomStamp.innerHTML = matches.length;
+    }else {
+        bottomStamp.innerHTML = bottomStamp.innerHTML--;
+    }
+}
+
+function goForward(matches) {
+    if(topStamp.innerHTML === matches.length) {
+        topStamp.innerHTML = 0;
+    }else {
+        topStamp.innerHTML = topStamp.innerHTML++;
+    }
+}
